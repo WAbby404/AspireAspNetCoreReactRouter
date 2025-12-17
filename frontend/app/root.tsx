@@ -12,21 +12,21 @@ import { useEffect } from "react";
 import type { Route } from "./+types/root";
 import "./app.css";
 
-// Loader runs on server - passes OTEL config to client for browser telemetry
-// Browser needs HTTP OTLP endpoint (not gRPC)
+// Loader runs on server - passes telemetry config to client for browser telemetry
 export function loader() {
-  // Browser telemetry only works in local development where the OTEL collector is accessible
-  // In production (Azure Container Apps), the collector is internal-only and not reachable from browsers
   const isProduction = process.env.NODE_ENV === "production";
+  const appInsightsConnectionString = process.env.APPLICATIONINSIGHTS_CONNECTION_STRING || null;
   
-  if (isProduction) {
-    // Don't attempt browser telemetry in production - collector is not publicly accessible
+  // In production, use App Insights for browser telemetry (publicly accessible)
+  if (isProduction || appInsightsConnectionString) {
     return {
       otlpEndpoint: null,
       otlpHeaders: null,
+      appInsightsConnectionString,
     };
   }
 
+  // In development, use OTLP endpoint (Aspire Dashboard)
   // Try HTTP-specific endpoint first, fall back to deriving from gRPC endpoint
   let httpEndpoint = process.env.OTEL_EXPORTER_OTLP_HTTP_ENDPOINT || null;
 
@@ -45,6 +45,7 @@ export function loader() {
   return {
     otlpEndpoint: httpEndpoint,
     otlpHeaders: process.env.OTEL_EXPORTER_OTLP_HEADERS || null,
+    appInsightsConnectionString: null,
   };
 }
 
@@ -80,16 +81,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const { otlpEndpoint, otlpHeaders } = useLoaderData<typeof loader>();
+  const { otlpEndpoint, otlpHeaders, appInsightsConnectionString } = useLoaderData<typeof loader>();
 
   useEffect(() => {
     // Only run in browser
-    if (typeof window !== "undefined" && otlpEndpoint) {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    // Use App Insights for production browser telemetry
+    if (appInsightsConnectionString) {
+      import("./telemetry.appinsights").then(({ initAppInsightsTelemetry }) => {
+        initAppInsightsTelemetry(appInsightsConnectionString);
+      });
+      return;
+    }
+
+    // Use OTLP for local development browser telemetry
+    if (otlpEndpoint) {
       import("./telemetry.client").then(({ initTelemetry }) => {
         initTelemetry(otlpEndpoint, otlpHeaders ?? undefined);
       });
     }
-  }, [otlpEndpoint, otlpHeaders]);
+  }, [otlpEndpoint, otlpHeaders, appInsightsConnectionString]);
 
   return <Outlet />;
 }

@@ -17,6 +17,8 @@
     "test:all": "vitest run && playwright test"
   },
   "dependencies": {
+    "@azure/monitor-opentelemetry": "^1.14.2",
+    "@microsoft/applicationinsights-web": "^3.3.10",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/auto-instrumentations-node": "^0.67.2",
     "@opentelemetry/context-zone": "^2.2.0",

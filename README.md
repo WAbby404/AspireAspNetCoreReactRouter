@@ -34,7 +34,7 @@ bobrossify/
 
 The easiest way to run the entire application with all dependencies:
 
-```bash
+```powershell
 dotnet apphost.cs
 ```
 
@@ -46,7 +46,7 @@ This uses .NET Aspire to orchestrate:
 
 ### Run Frontend Only
 
-```bash
+```powershell
 cd frontend
 npm install
 npm run dev
@@ -54,10 +54,25 @@ npm run dev
 
 ### Run Backend Only
 
-```bash
+```powershell
 cd webapi
 dotnet run
 ```
+
+### Creating a Different Frontend
+
+If you need to replace the frontend with a different framework or configuration, you can scaffold a new one using Vite:
+
+```powershell
+# Remove the existing frontend
+# or manually delete the `frontend` folder
+Remove-Item -Recurse -Force frontend
+
+# Create a new frontend with Vite (follow the prompts to choose your framework)
+npm create vite@latest frontend
+```
+
+This will prompt you to select a framework (React, Vue, Svelte, etc.) and variant (TypeScript, JavaScript, etc.). After creation, the Aspire orchestration will automatically pick up the new frontend.
 
 ## Development Commands
 
@@ -113,7 +128,23 @@ aspire deploy
 This creates:
 - **Container Apps Environment** with frontend and API containers
 - **Azure PostgreSQL Flexible Server** (PaaS) with Entra ID authentication
+- **Azure Application Insights** for production telemetry
 - **Managed Identity** for secure database access (no passwords)
+
+### Application Insights (Production Telemetry)
+
+When deployed to Azure, the application automatically sends telemetry to Azure Application Insights:
+
+- **Browser**: Page views, user interactions, fetch requests, exceptions
+- **Frontend Node.js**: SSR traces, HTTP requests, server-side errors
+- **API**: HTTP requests, database queries, custom spans, exceptions
+
+The Aspire Dashboard is also available in production for real-time debugging.
+
+To view telemetry in Azure Portal:
+1. Navigate to your resource group
+2. Open the Application Insights resource
+3. Use **Transaction search**, **Performance**, or **Failures** to explore traces
 
 ### Connecting to Azure PostgreSQL from Your Machine
 

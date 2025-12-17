@@ -2,6 +2,7 @@
 #:package Aspire.Hosting.JavaScript@*
 #:package Aspire.Hosting.Azure.PostgreSQL@*
 #:package Aspire.Hosting.Azure.AppContainers@*
+#:package Aspire.Hosting.Azure.ApplicationInsights@*
 #:package CommunityToolkit.Aspire.Hosting.PostgreSQL.Extensions@*
 #:project ./WebApi/WebApi.csproj
 
@@ -9,6 +10,9 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // Add Azure Container Apps environment for deployment
 builder.AddAzureContainerAppEnvironment("aca");
+
+// Add Azure Application Insights for production telemetry
+var appInsights = builder.AddAzureApplicationInsights("appInsights");
 
 // Use Azure PostgreSQL Flexible Server (runs as container locally)
 var pgServer = builder.AddAzurePostgresFlexibleServer("pg")
@@ -22,11 +26,13 @@ builder.AddDbGate("dbgate")
 
 var api = builder.AddProject<Projects.WebApi>("api")
     .WithReference(postgres)
+    .WithReference(appInsights)
     .WaitFor(postgres)
     .WithExternalHttpEndpoints();
 
 var frontend = builder.AddViteApp("frontend", "./frontend")
     .WithReference(api)
+    .WithReference(appInsights)
     .WithOtlpExporter()
     .WithExternalHttpEndpoints();
 
