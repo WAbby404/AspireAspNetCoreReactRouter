@@ -5,10 +5,36 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLoaderData,
 } from "react-router";
+import { useEffect } from "react";
 
 import type { Route } from "./+types/root";
 import "./app.css";
+
+// Loader runs on server - passes OTEL config to client for browser telemetry
+// Browser needs HTTP OTLP endpoint (not gRPC)
+export function loader() {
+  // Try HTTP-specific endpoint first, fall back to deriving from gRPC endpoint
+  let httpEndpoint = process.env.OTEL_EXPORTER_OTLP_HTTP_ENDPOINT || null;
+
+  // If no HTTP endpoint, try to derive from gRPC endpoint (HTTP is typically gRPC port + 1)
+  if (!httpEndpoint && process.env.OTEL_EXPORTER_OTLP_ENDPOINT) {
+    try {
+      const url = new URL(process.env.OTEL_EXPORTER_OTLP_ENDPOINT);
+      const grpcPort = parseInt(url.port, 10);
+      url.port = String(grpcPort + 1);
+      httpEndpoint = url.toString().replace(/\/$/, "");
+    } catch {
+      // If URL parsing fails, don't set endpoint
+    }
+  }
+
+  return {
+    otlpEndpoint: httpEndpoint,
+    otlpHeaders: process.env.OTEL_EXPORTER_OTLP_HEADERS || null,
+  };
+}
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -42,6 +68,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const { otlpEndpoint, otlpHeaders } = useLoaderData<typeof loader>();
+
+  useEffect(() => {
+    // Only run in browser
+    if (typeof window !== "undefined" && otlpEndpoint) {
+      import("./telemetry.client").then(({ initTelemetry }) => {
+        initTelemetry(otlpEndpoint, otlpHeaders ?? undefined);
+      });
+    }
+  }, [otlpEndpoint, otlpHeaders]);
+
   return <Outlet />;
 }
 

@@ -5,14 +5,35 @@ using WebApi.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add Aspire service defaults (OpenTelemetry, health checks, service discovery)
+builder.AddServiceDefaults();
+
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-// Add EF Core with SQLite via Aspire
-builder.AddSqliteDbContext<AppDbContext>("db");
+// Add CORS to allow trace context propagation from browser
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .WithExposedHeaders("traceparent", "tracestate");
+    });
+});
+
+// Add EF Core with PostgreSQL via Aspire
+builder.AddNpgsqlDbContext<AppDbContext>("db");
 
 var app = builder.Build();
+
+// Map Aspire default endpoints (health checks)
+app.MapDefaultEndpoints();
+
+// Enable CORS for trace context propagation
+app.UseCors();
 
 // Apply migrations and ensure database is created with seed data
 using (var scope = app.Services.CreateScope())
