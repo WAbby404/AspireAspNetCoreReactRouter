@@ -1,8 +1,8 @@
-#:sdk Aspire.AppHost.Sdk@13.0.2
-#:package Aspire.Hosting.JavaScript@*
-#:package Aspire.Hosting.Azure.PostgreSQL@*
-#:package Aspire.Hosting.Azure.AppContainers@*
-#:package Aspire.Hosting.Azure.ApplicationInsights@*
+#:sdk Aspire.AppHost.Sdk@13.1.0
+#:package Aspire.Hosting.JavaScript@13.1.0
+#:package Aspire.Hosting.Azure.PostgreSQL@13.1.0
+#:package Aspire.Hosting.Azure.AppContainers@13.1.0
+#:package Aspire.Hosting.Azure.ApplicationInsights@13.1.0
 #:package CommunityToolkit.Aspire.Hosting.PostgreSQL.Extensions@*
 #:project ./WebApi/WebApi.csproj
 
